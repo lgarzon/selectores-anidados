@@ -22,6 +22,8 @@ export class SelectorPageComponent implements OnInit {
   paises: PaisSmall[] = [];
   fronteras: PaisSmall[] = [];
 
+  cargando: boolean = false;
+
   constructor(private fb: FormBuilder, private paisesService: PaisesService) {}
 
   ngOnInit(): void {
@@ -41,15 +43,33 @@ export class SelectorPageComponent implements OnInit {
       ?.valueChanges.pipe(
         tap((_) => {
           this.miFormulario.get('pais')?.reset('');
+          this.cargando = true;
         }),
         switchMap((region) => this.paisesService.getPaisesPorRegion(region))
       )
       .subscribe((paises) => {
         this.paises = paises;
+        this.cargando = false;
       });
 
     //Cuando cambie el pais
-    this.miFormulario.get('pais')?.valueChanges;
+    this.miFormulario
+      .get('pais')
+      ?.valueChanges.pipe(
+        tap(() => {
+          this.miFormulario.get('frontera')?.reset('');
+          this.cargando = true;
+        }),
+        switchMap((codigo) => this.paisesService.getPaisesPorCodigo(codigo)),
+        switchMap((pais) =>
+          this.paisesService.getPaisesPorCodigos(pais?.borders!)
+        )
+      )
+      .subscribe((paises) => {
+        //this.fronteras = pais?.borders || [];
+        this.fronteras = paises;
+        this.cargando = false;
+      });
   }
 
   guardar() {
